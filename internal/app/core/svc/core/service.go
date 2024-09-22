@@ -29,6 +29,7 @@ type telegramClient interface {
 	SendOrUpdateMessage(chatID int64, messageID int64, buttons *telegram.KeyBoardType, message string, disablePrev bool) error
 	SendMessage(chatID sql.NullInt64, message string) error
 	SendMessageForAdmins(event telegram.AdminEvent, msg string) error
+	UpdateMessage(chatID, messageID int64, buttons *telegram.KeyBoardType, message string, disablePrev bool) error
 }
 
 type Service struct {
@@ -56,10 +57,13 @@ func NewService(
 	}
 
 	service.commandsMap = map[string]processorWithBranch{
-		telegram.InfoCommand:    {service.genInstructionsBranch(), false},
-		telegram.PayCommand:     {service.genPaymentBranch(), false},
-		telegram.AdminCommand:   {service.isAdminCommand(service.genAdminBranch()), true},
-		telegram.SupportCommand: {service.genSendSupportBranch(), true},
+		//telegram.InfoCommand:    {service.genInstructionsBranch(), false},
+		//telegram.PayCommand:     {service.genPaymentBranch(), false},
+		telegram.AdminCommand:     {service.isAdminCommand(service.genAdminBranch()), true},
+		telegram.DriverCommand:    {service.genDriverBranch(), true},
+		telegram.PassengerCommand: {service.genPassengerBranch(), true},
+		telegram.ProfileCommand:   {service.genProfileBranch(), true},
+		telegram.SupportCommand:   {service.genSendSupportBranch(), true},
 	}
 
 	if err := tgt.ReplaceSymbols(symbolsToNum); err != nil {
@@ -134,9 +138,9 @@ func (t *Service) ProcessUpdate(ctx context.Context, update *tgbotapi.Update) er
 		return nil
 	}
 
-	//if err = t.processCustomMessages(ctx, update); err != nil {
-	//	return trace.FuncNameWithErrorMsg(err, "custom processor")
-	//}
+	if err = t.processCustomMessages(ctx, update); err != nil {
+		return trace.FuncNameWithErrorMsg(err, "custom processor")
+	}
 
 	return nil
 }
@@ -289,5 +293,60 @@ func (t *Service) sendAdminMessagesAboutNewUser(ctx context.Context, user storag
 	if payload != "" {
 		_ = t.telegramClient.SendMessageForAdmins(telegram.EventNewUser, payload)
 	}
+	return nil
+}
+
+func (t *Service) processCustomMessages(ctx context.Context, update *tgbotapi.Update) error {
+	//botName, err := t.telegramClient.GetBotName()
+	//if err != nil {
+	//	return fmt.Errorf("master.ProcessCustomMessages error getting bot name: %w", err)
+	//}
+	//
+	user, err := t.storage.GetUserByChatID(ctx, update.Message.Chat.ID)
+	if err != nil {
+		return fmt.Errorf("master.ProcessCustomMessages error getting user: %w", err)
+	}
+
+	//if user.IsAdmin() && len(strings.Split(update.Message.Text, "\n\n")) > 1 {
+	//	items := strings.Split(update.Message.Text, "\n\n")
+	//	msg := strings.Join(items[1:], "")
+	//
+	//	key, out := getBracketsInOut(items[0])
+	//
+	//	switch out {
+	//	case fmt.Sprintf("@%s %s", botName, createCompanyText):
+	//		if err = t.createCompany(ctx, update, msg); err != nil {
+	//			return fmt.Errorf("master.ProcessCustomMessages error creating company: %w", err)
+	//		}
+	//		return nil
+	//	case fmt.Sprintf("@%s %s", botName, entities.DeleteUserText):
+	//		if err = t.deleteUser(ctx, update, msg); err != nil {
+	//			return fmt.Errorf("master.ProcessCustomMessages error deleting user: %w", err)
+	//		}
+	//		return nil
+	//	case fmt.Sprintf("@%s %s", botName, entities.DeleteServerText):
+	//		if err = t.deleteServer(ctx, msg); err != nil {
+	//			return fmt.Errorf("master.ProcessCustomMessages error deleting server: %w", err)
+	//		}
+	//		return nil
+	//	case fmt.Sprintf("@%s %s", botName, entities.SendNotificationSenderText):
+	//		if err = t.sendNotifications(ctx, msg, key); err != nil {
+	//			return fmt.Errorf("master.ProcessCustomMessages error deleting server: %w", err)
+	//		}
+	//		return nil
+	//	}
+	//}
+	//
+	//if _, ok := t.godModeKeys[update.Message.Text]; ok {
+	//	if err = t.doGodMode(ctx, update); err != nil {
+	//		return trace.FuncNameWithErrorMsg(err, "doing god mode")
+	//	}
+	//	return nil
+	//}
+	//
+	//if err = t.model.AddMessage(ctx, user.ID, update.Message.Text); err != nil {
+	//	return trace.FuncNameWithErrorMsg(err, "saving message")
+	//}
+	_ = t.telegramClient.SendMessage(user.ChatID, wrongMessage)
 	return nil
 }

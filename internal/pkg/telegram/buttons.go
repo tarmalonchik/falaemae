@@ -5,13 +5,15 @@ import (
 )
 
 const (
-	AdminCommand   = "Админка ⚙️"
-	StartCommand   = "/start"
-	PayCommand     = "Подписка 💸"
-	SupportCommand = "Поддержка 🧑"
-	InfoCommand    = "Как подключить ❓"
-	ServersList    = "Поменять страну 🔄"
-	ReferralLink   = "Пригласить друга 🙋🏻‍"
+	AdminCommand     = "Админка ⚙️"
+	DriverCommand    = "Я водитель 🚗"
+	StartCommand     = "/start"
+	PassengerCommand = "Я пассажир 🙎‍"
+	ProfileCommand   = "Профиль 👤"
+	SupportCommand   = "Поддержка 🧑"
+	//InfoCommand    = "Как подключить ❓"
+	//ServersList    = "Поменять страну 🔄"
+	//ReferralLink   = "Пригласить друга 🙋🏻‍"
 )
 
 type AdminEvent string
@@ -78,23 +80,18 @@ var KeyBoardItem = KeyBoardType{
 		Keyboard: [][]tgbotapi.KeyboardButton{
 			{
 				{
-					Text: PayCommand,
+					Text: DriverCommand,
 				},
 				{
-					Text: InfoCommand,
+					Text: PassengerCommand,
 				},
 			},
 			{
 				{
-					Text: ServersList,
+					Text: ProfileCommand,
 				},
 				{
 					Text: SupportCommand,
-				},
-			},
-			{
-				{
-					Text: ReferralLink,
 				},
 			},
 		},

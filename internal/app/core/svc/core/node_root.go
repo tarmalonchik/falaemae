@@ -12,47 +12,33 @@ import (
 )
 
 var symbolsToNum = map[string]int{
-	entities.AdminRoot:        0,
-	entities.ServerRoot:       1,
-	entities.PaymentRoot:      2,
-	"d":                       3,
-	"e":                       4,
-	entities.InstructionsRoot: 5,
-	"g":                       6,
-	entities.ReviewsRoot:      7,
-	entities.AddDemoRoot:      8,
-	"j":                       9,
-	"k":                       10,
-	"l":                       11,
-	"m":                       12,
-	"n":                       13,
-	"o":                       14,
-	"p":                       15,
-	"q":                       16,
-	"r":                       17,
-	"s":                       18,
-	"t":                       19,
-	"u":                       20,
-	"v":                       21,
-	"w":                       22,
-	"x":                       23,
-	"y":                       24,
-	"z":                       25,
+	entities.AdminRoot:     0,
+	entities.DriverRoot:    1,
+	entities.PassengerRoot: 2,
+	entities.ProfileRoot:   3,
+	"e":                    4,
+	"f":                    5,
+	"g":                    6,
+	"h":                    7,
+	"i":                    8,
+	"j":                    9,
+	"k":                    10,
+	"l":                    11,
+	"m":                    12,
+	"n":                    13,
+	"o":                    14,
+	"p":                    15,
+	"q":                    16,
+	"r":                    17,
+	"s":                    18,
+	"t":                    19,
+	"u":                    20,
+	"v":                    21,
+	"w":                    22,
+	"x":                    23,
+	"y":                    24,
+	"z":                    25,
 }
-
-const (
-	DaysKey                         = "."
-	PromoKey                        = ","
-	MonthKey                        = ":"
-	CompaniesKey                    = ";"
-	PaymentKey                      = "!"
-	AddDemoKey                      = "`"
-	ServersKey                      = "#"
-	ReviewWithForHaveSubscription   = "?"
-	ReviewWithForHaveNoSubscription = "%"
-	messageSubscriptionExpired      = "У вас нет активной подписки. Чтобы подписаться, воспользуйтесь кнопками:"
-	messageHaveActiveSubscription   = "Ваша подписка активна до: <b>%s</b> \nДля продления подписки воспользуйтесь кнопками:"
-)
 
 type processorFunc func(ctx context.Context, meta MetaData) ([]tgt.Node, error)
 
@@ -85,15 +71,10 @@ func isCloseCallback(in string) bool {
 
 func (t *Service) generateRootNodes(ctx context.Context, chatID int64) []tgt.Node {
 	return []tgt.Node{
-		//t.generateAdminRoot(),                   // 0 AdminRoot
-		//t.generateServerRoot(),                  // 1 ServerRoot
-		//t.generatePaymentRoot(ctx, chatID),      // 2 PaymentRoot
-		t.reserved2Root(),    // 3 not reserved
-		t.reservedNodeRoot(), // 4 not reserved
-		//t.generateInstructionsRoot(ctx, chatID), // 5 InstructionsRoot
-		//t.generatePaymentRoot(ctx, chatID),      // 6 Deprecated NewUsersRoot
-		//t.generateReviewsRoot(),                 // 7 ReviewsRoot
-		//t.generateAddDemoRoot(),                 // 8 AddDemoRoot
+		t.generateAdminRoot(),     // 0 AdminRoot
+		t.generateDriverRoot(),    // 1 Driver
+		t.generatePassengerRoot(), // 2 Passenger
+		t.generateProfileRoot(),   // 2 Profile
 	}
 }
 
@@ -109,10 +90,10 @@ func (*Service) reserved2Root() tgt.Node {
 	)
 }
 
-func (t *Service) genServersBranch() commandsProcessorFunc {
+func (t *Service) genProfileBranch() commandsProcessorFunc {
 	return func(ctx context.Context, meta MetaData) error {
 		return t.ProcessCommandAsCallback(ctx, &MetaData{
-			Callback:  entities.ServerRoot,
+			Callback:  entities.ProfileRoot,
 			ChatID:    meta.ChatID,
 			MessageID: meta.MessageID,
 		})
@@ -129,20 +110,20 @@ func (t *Service) genAdminBranch() commandsProcessorFunc {
 	}
 }
 
-func (t *Service) genPaymentBranch() commandsProcessorFunc {
+func (t *Service) genPassengerBranch() commandsProcessorFunc {
 	return func(ctx context.Context, meta MetaData) error {
 		return t.ProcessCommandAsCallback(ctx, &MetaData{
-			Callback:  entities.PaymentRoot,
+			Callback:  entities.PassengerRoot,
 			ChatID:    meta.ChatID,
 			MessageID: meta.MessageID,
 		})
 	}
 }
 
-func (t *Service) genInstructionsBranch() commandsProcessorFunc {
+func (t *Service) genDriverBranch() commandsProcessorFunc {
 	return func(ctx context.Context, meta MetaData) error {
 		return t.ProcessCommandAsCallback(ctx, &MetaData{
-			Callback:  entities.InstructionsRoot,
+			Callback:  entities.DriverRoot,
 			ChatID:    meta.ChatID,
 			MessageID: meta.MessageID,
 		})

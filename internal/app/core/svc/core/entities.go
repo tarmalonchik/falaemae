@@ -7,6 +7,8 @@ import (
 
 const (
 	pleaseUseButtons = "Пожалуйста воспользуйтесь кнопками"
+	wrongMessage     = "Обратитесь пожалуйста в поддержку @vpnchik_support"
+	datePayloadKey   = "!"
 )
 
 type Config struct {
