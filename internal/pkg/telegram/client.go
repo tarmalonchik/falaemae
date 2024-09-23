@@ -199,7 +199,7 @@ func generateInlineTemplate(req *NewKeyboardRequest) *telegram.InlineKeyboardMar
 	response := &telegram.InlineKeyboardMarkup{}
 
 	for i := range req.NextNodes {
-		if i > 20 {
+		if i > 30 {
 			break
 		}
 		if req.NextNodes[i] != nil {
@@ -213,7 +213,13 @@ func generateInlineTemplate(req *NewKeyboardRequest) *telegram.InlineKeyboardMar
 				switchInlineQueryCurrentChat = req.NextNodes[i].GetTelegram().GetSwitchInlineQueryCurrentChat()
 			}
 
-			response.InlineKeyboard = append(response.InlineKeyboard, []telegram.InlineKeyboardButton{})
+			columns := req.Columns
+
+			if i%columns == 0 {
+				response.InlineKeyboard = append(response.InlineKeyboard, []telegram.InlineKeyboardButton{})
+
+			}
+
 			response.InlineKeyboard[len(response.InlineKeyboard)-1] =
 				append(
 					response.InlineKeyboard[len(response.InlineKeyboard)-1],

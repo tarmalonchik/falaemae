@@ -297,3 +297,53 @@ func (c *Client) sendPhotoByID(ctx context.Context, chatID int64, fileID string)
 	}
 	return nil
 }
+
+func (c *Client) getMessage(ctx context.Context, chatID int64, fileID string) error {
+	const (
+		method        = "/sendPhoto"
+		requestMethod = http.MethodPost
+	)
+
+	u, err := url.Parse(c.conf.GetTgBotBaseURL())
+	if err != nil {
+		return fmt.Errorf("[%s][client][%s][%s] parse url '%s' error %w",
+			requestMethod, clientName, method, c.conf.GetTgBotBaseURL(), err)
+	}
+	u.Path += fmt.Sprintf(tokenTemp, c.conf.GetTgBotToken()) + method
+
+	body := new(bytes.Buffer)
+	writer := multipart.NewWriter(body)
+	defer func() { _ = writer.Close() }()
+
+	if err = writer.WriteField(chatIDField, strconv.Itoa(int(chatID))); err != nil {
+		return err
+	}
+	if err = writer.WriteField(photoField, fileID); err != nil {
+		return err
+	}
+
+	err = writer.Close()
+	if err != nil {
+		return err
+	}
+
+	req, err := http.NewRequestWithContext(ctx, requestMethod, u.String(), body)
+	if err != nil {
+		return fmt.Errorf("[%s][client][%s][%s] create request error: %w",
+			requestMethod, clientName, method, err)
+	}
+	req.Header.Set("Content-Type", writer.FormDataContentType())
+
+	respHTTP, err := c.httpClient.Do(req)
+	if err != nil {
+		return fmt.Errorf("[%s][client][%s][%s] requesting error: %w",
+			requestMethod, clientName, method, err)
+	}
+	defer func() { _ = respHTTP.Close }()
+
+	if respHTTP.StatusCode >= 400 {
+		return fmt.Errorf("[%s][client][%s][%s] bad status code: %d",
+			requestMethod, clientName, method, respHTTP.StatusCode)
+	}
+	return nil
+}

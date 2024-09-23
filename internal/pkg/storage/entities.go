@@ -8,6 +8,7 @@ import (
 
 	"github.com/google/uuid"
 
+	"github.com/tarmalonchik/falaemae/internal/entities"
 	"github.com/tarmalonchik/falaemae/internal/pkg/telegram"
 )
 
@@ -50,4 +51,20 @@ func (u *User) GetUserString() string {
 		}
 	}
 	return userString
+}
+
+type Drive struct {
+	ID        uuid.UUID              `db:"id"`
+	DriverID  uuid.UUID              `db:"driver_id"`
+	Time      time.Time              `db:"time"`
+	Direction entities.DirectionType `db:"direction"`
+	Car       int64                  `db:"car"`
+	Price     int64                  `db:"price"`
+	Slots     int                    `db:"slots"`
+	CreatedAt time.Time              `db:"created_at"`
+}
+
+type Car struct {
+	ID   int64  `db:"id"`
+	Name string `db:"name"`
 }

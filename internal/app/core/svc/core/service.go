@@ -5,14 +5,18 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"strconv"
+	"strings"
 
 	tgbotapi "github.com/Syfaro/telegram-bot-api"
 	"github.com/google/uuid"
 	tgt "github.com/vkidmode/telegram_tree"
 
+	"github.com/tarmalonchik/falaemae/internal/entities"
 	"github.com/tarmalonchik/falaemae/internal/pkg/logger"
 	storageSdk "github.com/tarmalonchik/falaemae/internal/pkg/storage"
 	"github.com/tarmalonchik/falaemae/internal/pkg/telegram"
+	"github.com/tarmalonchik/falaemae/internal/pkg/tools"
 	"github.com/tarmalonchik/falaemae/internal/pkg/trace"
 )
 
@@ -22,6 +26,12 @@ type storage interface {
 	HandlePGTransaction(pgTx storageSdk.PGTransactionFn) error
 	InitUser(ctx context.Context, inputUser storageSdk.User) (user storageSdk.User, err error)
 	GetUserPayload(ctx context.Context, userID uuid.UUID, orderID *uuid.UUID) (string, error)
+	CreateDrive(ctx context.Context, inputUser storageSdk.Drive) (drive storageSdk.Drive, err error)
+	GetLast10Drives(ctx context.Context, driverID uuid.UUID) (drives []storageSdk.Drive, err error)
+	GetLastCars(ctx context.Context, driverID uuid.UUID) (cars []int64, err error)
+	CreateOrResolveCarID(ctx context.Context, name string) (carID int64, err error)
+	GetCarsByID(ctx context.Context, carIDs []int64) (cars []storageSdk.Car, err error)
+	GetCarByID(ctx context.Context, id int) (car storageSdk.Car, err error)
 }
 
 type telegramClient interface {
@@ -30,6 +40,7 @@ type telegramClient interface {
 	SendMessage(chatID sql.NullInt64, message string) error
 	SendMessageForAdmins(event telegram.AdminEvent, msg string) error
 	UpdateMessage(chatID, messageID int64, buttons *telegram.KeyBoardType, message string, disablePrev bool) error
+	GetBotName() (string, error)
 }
 
 type Service struct {
@@ -232,7 +243,11 @@ func (t *Service) commonProcessor(ctx context.Context, meta *MetaData) (err erro
 
 	message := meta.Message
 	if message == "" {
-		message = node.GetTelegram().GetMessage()
+		payload, err := tgt.ExtractPayload(meta.GetCallback())
+		if err != nil {
+			return trace.FuncNameWithErrorMsg(err, "getting payload")
+		}
+		message = fillMessageWithPayload(payload, node.GetTelegram().GetMessage())
 	}
 
 	keyboard, err = telegram.NewKeyboard(&telegram.NewKeyboardRequest{
@@ -241,6 +256,7 @@ func (t *Service) commonProcessor(ctx context.Context, meta *MetaData) (err erro
 		HideBar:      node.GetTelegram().GetHideBar(),
 		CallbackSkip: callbackSkip,
 		CallbackBack: callbackBack,
+		Columns:      node.GetTelegram().GetColumns(),
 	})
 	if err != nil {
 		return trace.FuncNameWithErrorMsg(err, "creating keyboard")
@@ -248,6 +264,36 @@ func (t *Service) commonProcessor(ctx context.Context, meta *MetaData) (err erro
 
 	_ = t.telegramClient.SendOrUpdateMessage(meta.ChatID, meta.MessageID, keyboard, message, !node.GetTelegram().GetEnablePreview())
 	return nil
+}
+
+func fillMessageWithPayload(payload map[string]string, message string) string {
+	for key, val := range payload {
+		replacer := val
+
+		switch key {
+		case directionPayloadKey:
+			if val == strconv.Itoa(int(entities.DirectionTypeToTskhinvali)) {
+				replacer = "Владикавказ → Цхинвал"
+			} else {
+				replacer = "Цхинвал → Владикавказ"
+			}
+		case datePayloadKey:
+			date := tools.NewDate()
+			date.ParsePayloadPrinted(val)
+			replacer = date.PrettyPrinted()
+		case pricePayloadKey:
+			price, err := strconv.Atoi(val)
+			if err != nil {
+				return message
+			}
+			replacer = strconv.Itoa(price*100) + " ₽"
+		default:
+			replacer = val
+		}
+
+		message = strings.ReplaceAll(message, fmt.Sprintf("<%s>", key), replacer)
+	}
+	return message
 }
 
 func (t *Service) genNewTree(ctx context.Context, chatID int64) (treeHandler *tgt.NodesHandler, err error) {
@@ -297,56 +343,67 @@ func (t *Service) sendAdminMessagesAboutNewUser(ctx context.Context, user storag
 }
 
 func (t *Service) processCustomMessages(ctx context.Context, update *tgbotapi.Update) error {
-	//botName, err := t.telegramClient.GetBotName()
-	//if err != nil {
-	//	return fmt.Errorf("master.ProcessCustomMessages error getting bot name: %w", err)
-	//}
-	//
+	botName, err := t.telegramClient.GetBotName()
+	if err != nil {
+		return fmt.Errorf("master.ProcessCustomMessages error getting bot name: %w", err)
+	}
+
 	user, err := t.storage.GetUserByChatID(ctx, update.Message.Chat.ID)
 	if err != nil {
 		return fmt.Errorf("master.ProcessCustomMessages error getting user: %w", err)
 	}
 
-	//if user.IsAdmin() && len(strings.Split(update.Message.Text, "\n\n")) > 1 {
-	//	items := strings.Split(update.Message.Text, "\n\n")
-	//	msg := strings.Join(items[1:], "")
-	//
-	//	key, out := getBracketsInOut(items[0])
-	//
-	//	switch out {
-	//	case fmt.Sprintf("@%s %s", botName, createCompanyText):
-	//		if err = t.createCompany(ctx, update, msg); err != nil {
-	//			return fmt.Errorf("master.ProcessCustomMessages error creating company: %w", err)
-	//		}
-	//		return nil
-	//	case fmt.Sprintf("@%s %s", botName, entities.DeleteUserText):
-	//		if err = t.deleteUser(ctx, update, msg); err != nil {
-	//			return fmt.Errorf("master.ProcessCustomMessages error deleting user: %w", err)
-	//		}
-	//		return nil
-	//	case fmt.Sprintf("@%s %s", botName, entities.DeleteServerText):
-	//		if err = t.deleteServer(ctx, msg); err != nil {
-	//			return fmt.Errorf("master.ProcessCustomMessages error deleting server: %w", err)
-	//		}
-	//		return nil
-	//	case fmt.Sprintf("@%s %s", botName, entities.SendNotificationSenderText):
-	//		if err = t.sendNotifications(ctx, msg, key); err != nil {
-	//			return fmt.Errorf("master.ProcessCustomMessages error deleting server: %w", err)
-	//		}
-	//		return nil
-	//	}
-	//}
-	//
-	//if _, ok := t.godModeKeys[update.Message.Text]; ok {
-	//	if err = t.doGodMode(ctx, update); err != nil {
-	//		return trace.FuncNameWithErrorMsg(err, "doing god mode")
-	//	}
-	//	return nil
-	//}
-	//
-	//if err = t.model.AddMessage(ctx, user.ID, update.Message.Text); err != nil {
-	//	return trace.FuncNameWithErrorMsg(err, "saving message")
-	//}
+	if user.IsAdmin() && len(strings.Split(update.Message.Text, "\n\n")) > 1 {
+		items := strings.Split(update.Message.Text, "\n\n")
+		if len(items) != 2 {
+			items = strings.Split(update.Message.Text, "\n")
+			if len(items) != 2 {
+				return trace.FuncNameWithErrorMsg(err, "invalid inline data")
+			}
+		}
+
+		in, out := getBracketsInOut(items[0])
+
+		if strings.Contains(out, enterCarModelText) && strings.Contains(out, botName) {
+			if err = t.processCreateDrive(ctx, update, in, items[1]); err != nil {
+				return fmt.Errorf("master.ProcessCustomMessages error creating company: %w", err)
+			}
+			return nil
+		}
+
+		//switch out {
+		//case fmt.Sprintf("@%s %s", botName, enterCarModelText):
+		//	if err = t.processCreateDrive(ctx, update, msg); err != nil {
+		//		return fmt.Errorf("master.ProcessCustomMessages error creating company: %w", err)
+		//	}
+		//	return nil
+		//case fmt.Sprintf("@%s %s", botName, entities.DeleteUserText):
+		//	if err = t.deleteUser(ctx, update, msg); err != nil {
+		//		return fmt.Errorf("master.ProcessCustomMessages error deleting user: %w", err)
+		//	}
+		//	return nil
+		//case fmt.Sprintf("@%s %s", botName, entities.DeleteServerText):
+		//	if err = t.deleteServer(ctx, msg); err != nil {
+		//		return fmt.Errorf("master.ProcessCustomMessages error deleting server: %w", err)
+		//	}
+		//	return nil
+		//case fmt.Sprintf("@%s %s", botName, entities.SendNotificationSenderText):
+		//	if err = t.sendNotifications(ctx, msg, key); err != nil {
+		//		return fmt.Errorf("master.ProcessCustomMessages error deleting server: %w", err)
+		//	}
+		//	return nil
+		//}
+	}
+
 	_ = t.telegramClient.SendMessage(user.ChatID, wrongMessage)
 	return nil
+}
+
+func getBracketsInOut(msg string) (in, out string) {
+	openIdx := strings.Index(msg, "(")
+	closeIdx := strings.Index(msg, ")")
+	if !(openIdx >= 0 && closeIdx >= 0) || openIdx > closeIdx {
+		return "", msg
+	}
+	return msg[openIdx+1 : closeIdx], msg[:openIdx] + msg[closeIdx+1:]
 }

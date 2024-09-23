@@ -32,6 +32,7 @@ type NewKeyboardRequest struct {
 	HideBar      bool
 	CallbackBack string
 	CallbackSkip string
+	Columns      int
 }
 
 type metaInfo interface {

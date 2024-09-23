@@ -12,42 +12,43 @@ import (
 )
 
 var symbolsToNum = map[string]int{
-	entities.AdminRoot:     0,
-	entities.DriverRoot:    1,
-	entities.PassengerRoot: 2,
-	entities.ProfileRoot:   3,
-	"e":                    4,
-	"f":                    5,
-	"g":                    6,
-	"h":                    7,
-	"i":                    8,
-	"j":                    9,
-	"k":                    10,
-	"l":                    11,
-	"m":                    12,
-	"n":                    13,
-	"o":                    14,
-	"p":                    15,
-	"q":                    16,
-	"r":                    17,
-	"s":                    18,
-	"t":                    19,
-	"u":                    20,
-	"v":                    21,
-	"w":                    22,
-	"x":                    23,
-	"y":                    24,
-	"z":                    25,
+	entities.AdminRoot:       0,
+	entities.DriverRoot:      1,
+	entities.PassengerRoot:   2,
+	entities.ProfileRoot:     3,
+	"e":                      4,
+	"f":                      5,
+	"g":                      6,
+	"h":                      7,
+	"i":                      8,
+	"j":                      9,
+	"k":                      10,
+	"l":                      11,
+	"m":                      12,
+	"n":                      13,
+	"o":                      14,
+	"p":                      15,
+	"q":                      16,
+	"r":                      17,
+	"s":                      18,
+	"t":                      19,
+	"u":                      20,
+	"v":                      21,
+	"w":                      22,
+	"x":                      23,
+	"y":                      24,
+	entities.SingleDriveRoot: 25,
 }
 
 type processorFunc func(ctx context.Context, meta MetaData) ([]tgt.Node, error)
 
 type MetaData struct {
-	ChatID    int64
-	MessageID int64
-	Callback  string
-	IsMiddle  bool
-	Message   string
+	ChatID         int64
+	MessageID      int64
+	Callback       string
+	IsMiddle       bool
+	Message        string
+	DynamicMessage string
 }
 
 func (m *MetaData) GetCallback() string     { return m.Callback }

@@ -14,7 +14,7 @@ require (
 	github.com/pseudomuto/protoc-gen-doc v1.5.1
 	github.com/sirupsen/logrus v1.9.3
 	github.com/vkidmode/server-core v1.0.17
-	github.com/vkidmode/telegram_tree v1.1.7
+	github.com/vkidmode/telegram_tree v1.1.9
 	google.golang.org/grpc/cmd/protoc-gen-go-grpc v1.5.1
 	google.golang.org/protobuf v1.34.2
 )

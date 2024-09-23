@@ -2,7 +2,7 @@ create extension if not exists "uuid-ossp";
 drop table if exists users;
 create table users
 (
-    id         uuid     default uuid_generate_v4() not null constraint orders_pk primary key,
+    id         uuid     default uuid_generate_v4() not null constraint users_pk primary key,
     telegram_user     text,
     chat_id           integer                   not null,
     created_at        timestamptz default now() not null
